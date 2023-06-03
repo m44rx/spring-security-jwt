@@ -1,4 +1,4 @@
-package models;
+package pe.sg.springsecurityjwt.models;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

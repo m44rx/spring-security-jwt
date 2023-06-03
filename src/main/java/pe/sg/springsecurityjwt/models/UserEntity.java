@@ -1,4 +1,4 @@
-package models;
+package pe.sg.springsecurityjwt.models;
 
 import java.util.Set;
 
@@ -39,7 +39,7 @@ public class UserEntity {
 
     @NotBlank
     @Size(max = 30)
-    private String userName;
+    private String username;
 
     @NotBlank
     private String password;
