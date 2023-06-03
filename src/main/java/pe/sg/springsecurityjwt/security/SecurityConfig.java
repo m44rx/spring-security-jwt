@@ -6,20 +6,31 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-import static org.springframework.security.config.Customizer.withDefaults;
+import lombok.RequiredArgsConstructor;
+import pe.sg.springsecurityjwt.security.filters.JwtAuthenticationFilter;
+import pe.sg.springsecurityjwt.security.jwt.JwtUtils;
+import pe.sg.springsecurityjwt.service.UserDetailsServiceImpl;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final UserDetailsServiceImpl userDetailsServiceImpl;
+    private final JwtUtils jwtUtils;
+
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity, AuthenticationManager authenticationManager)
+            throws Exception {
+
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtUtils);
+        jwtAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        // Personalizar la ruta del login - puede ser otra
+        jwtAuthenticationFilter.setFilterProcessesUrl("/login");
+
         return httpSecurity
                 .csrf(config -> config.disable())
                 .authorizeHttpRequests(auth -> {
@@ -30,24 +41,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> {
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
                 })
-                .httpBasic(withDefaults())
+                .addFilter(jwtAuthenticationFilter)
                 .build();
-    }
-
-    // Crear usuario y pass en memoria
-    @Bean
-    UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-
-        manager.createUser(User.withUsername("manjaro")
-                .password("1234").roles().build());
-
-        return manager;
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        // Una vez q se encripta no se puede desencriptar
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -55,7 +56,7 @@ public class SecurityConfig {
             throws Exception {
 
         return httpSecurity.getSharedObject(AuthenticationManagerBuilder.class)
-                .userDetailsService(userDetailsService())
+                .userDetailsService(userDetailsServiceImpl)
                 .passwordEncoder(passwordEncoder)
                 .and().build();
 
